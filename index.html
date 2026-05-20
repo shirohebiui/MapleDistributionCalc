@@ -112,6 +112,19 @@
     font-size: 0.9rem;
   }
 
+  .meso-display {
+    margin-top: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+    min-height: 1.2em;
+  }
+
+  .meso-display .meso-val { color: var(--accent2); }
+  .meso-display .meso-unit { color: var(--muted); font-weight: 400; }
+
   .global-mvp {
     display: flex;
     align-items: center;
@@ -458,6 +471,7 @@
   <div class="sell-label">판매 가격</div>
   <div class="price-input-wrap">
     <input type="number" id="sellPrice" placeholder="금액 입력" min="0" oninput="calc()">
+    <div class="meso-display" id="mesoDisplay"></div>
   </div>
   <label class="global-mvp" id="globalMvpLabel">
     <input type="checkbox" id="globalMvp" checked onchange="calc()">
@@ -609,6 +623,15 @@ function fmt(n) {
 function calc() {
   const sellPrice = parseInt(document.getElementById('sellPrice').value) || 0;
   const globalMvp = document.getElementById('globalMvp').checked;
+
+  // 억 단위 메소 표시
+  const mesoEl = document.getElementById('mesoDisplay');
+  if (sellPrice > 0) {
+    const uk = (sellPrice / 100000000).toFixed(4).replace(/\.?0+$/, '');
+    mesoEl.innerHTML = `<span class="meso-val">${uk}억</span> <span class="meso-unit">메소</span>`;
+  } else {
+    mesoEl.innerHTML = '';
+  }
 
   // 글로벌 MVP 수수료 배지
   document.getElementById('globalFeeBadge').textContent = globalMvp ? '3%' : '5%';
