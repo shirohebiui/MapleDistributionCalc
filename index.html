@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>파티 분배 계산기</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #12151c;
+    --surface2: #1a1e28;
+    --border: #252a38;
+    --accent: #f0b429;
+    --accent2: #e86b2b;
+    --blue: #4a9eff;
+    --green: #2ecc71;
+    --red: #e74c3c;
+    --muted: #5a6480;
+    --text: #c8d0e8;
+    --text-bright: #eef2ff;
+    --leader-glow: rgba(240,180,41,0.15);
+    --member-glow: rgba(74,158,255,0.1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    min-height: 100vh;
+    padding: 32px 16px 60px;
+    background-image:
+      radial-gradient(ellipse 60% 40% at 20% 10%, rgba(240,180,41,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 30% at 80% 80%, rgba(74,158,255,0.05) 0%, transparent 60%);
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  header h1 {
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--text-bright);
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
+
+  header h1 span {
+    color: var(--accent);
+  }
+
+  header p {
+    margin-top: 8px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── 판매가격 섹션 ── */
+  .sell-section {
+    max-width: 640px;
+    margin: 0 auto 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 28px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .sell-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .price-input-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 180px;
+  }
+
+  .price-input-wrap input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 1.3rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: var(--accent);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .price-input-wrap input:focus {
+    border-color: var(--accent);
+  }
+
+  .price-input-wrap input::placeholder {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .global-mvp {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 16px;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.2s, background 0.2s;
+    white-space: nowrap;
+  }
+
+  .global-mvp:hover {
+    border-color: var(--accent);
+  }
+
+  .global-mvp .tag {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+
+  .global-mvp .fee-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--accent2);
+    background: rgba(232,107,43,0.12);
+    border-radius: 6px;
+    padding: 2px 8px;
+    transition: all 0.2s;
+  }
+
+  /* custom checkbox */
+  .chk-wrap {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .chk-wrap input[type="checkbox"] {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border);
+    border-radius: 5px;
+    background: var(--surface2);
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .chk-wrap input[type="checkbox"]:checked {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .chk-wrap input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 3px; top: 0px;
+    width: 8px; height: 12px;
+    border: 2px solid #0a0c10;
+    border-top: none;
+    border-left: none;
+    transform: rotate(40deg);
+  }
+
+  .chk-wrap span {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.04em;
+  }
+
+  /* ── 파티 블럭 영역 ── */
+  .party-area {
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  /* 블럭 공통 */
+  .block {
+    flex: 1 1 200px;
+    min-width: 200px;
+    max-width: 280px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    position: relative;
+    transition: box-shadow 0.2s, border-color 0.2s;
+    animation: fadeUp 0.3s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .block.leader {
+    border-color: rgba(240,180,41,0.4);
+    box-shadow: 0 0 32px var(--leader-glow);
+  }
+
+  .block.member {
+    border-color: rgba(74,158,255,0.2);
+    box-shadow: 0 0 24px var(--member-glow);
+  }
+
+  .block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .block-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  .leader .block-title {
+    background: rgba(240,180,41,0.15);
+    color: var(--accent);
+    border: 1px solid rgba(240,180,41,0.3);
+  }
+
+  .member .block-title {
+    background: rgba(74,158,255,0.1);
+    color: var(--blue);
+    border: 1px solid rgba(74,158,255,0.25);
+  }
+
+  .remove-btn {
+    background: rgba(231,76,60,0.12);
+    border: 1px solid rgba(231,76,60,0.25);
+    color: var(--red);
+    border-radius: 8px;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    transition: all 0.15s;
+  }
+
+  .remove-btn:hover {
+    background: rgba(231,76,60,0.25);
+  }
+
+  .block-checks {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* 수수료 표시 */
+  .fee-info {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 10px;
+    letter-spacing: 0.02em;
+  }
+
+  .fee-info .fee-chain {
+    color: var(--accent2);
+    font-weight: 700;
+  }
+
+  .fee-info .fee-result {
+    color: var(--red);
+    font-weight: 700;
+  }
+
+  /* 금액 표시 */
+  .amount-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .amount-item {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+
+  .amount-item .alabel {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 3px;
+  }
+
+  .amount-item .aval {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--green);
+  }
+
+  .amount-item .aval.transfer {
+    color: var(--blue);
+  }
+
+  .amount-item .aval.leader-val {
+    color: var(--accent);
+  }
+
+  /* +버튼 */
+  .add-btn-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    align-self: center;
+  }
+
+  .add-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 2px dashed var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 1.6rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    line-height: 1;
+  }
+
+  .add-btn:hover:not(:disabled) {
+    border-color: var(--blue);
+    color: var(--blue);
+    background: rgba(74,158,255,0.07);
+    transform: scale(1.08);
+  }
+
+  .add-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  /* 결과 요약 */
+  .summary {
+    max-width: 640px;
+    margin: 32px auto 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 26px;
+  }
+
+  .summary h2 {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .summary-item {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+
+  .summary-item .slabel {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .summary-item .sval {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-bright);
+  }
+
+  .note {
+    margin-top: 14px;
+    font-size: 0.73rem;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  .note b { color: var(--accent); }
+
+  @media (max-width: 600px) {
+    .sell-section { padding: 18px; gap: 14px; }
+    header h1 { font-size: 1.5rem; }
+    .block { min-width: 160px; }
+    .summary-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>파티 <span>분배</span> 계산기</h1>
+  <p>아이템 판매 후 · 수수료 공제 · 균등 수령액 산출</p>
+</header>
+
+<!-- 판매가격 입력 -->
+<div class="sell-section">
+  <div class="sell-label">판매 가격</div>
+  <div class="price-input-wrap">
+    <input type="number" id="sellPrice" placeholder="금액 입력" min="0" oninput="calc()">
+  </div>
+  <label class="global-mvp" id="globalMvpLabel">
+    <input type="checkbox" id="globalMvp" checked onchange="calc()">
+    <span class="tag">전체 MVP</span>
+    <span class="fee-badge" id="globalFeeBadge">3%</span>
+  </label>
+</div>
+
+<!-- 파티 블럭 영역 -->
+<div class="party-area" id="partyArea">
+  <!-- 파티장 -->
+  <div class="block leader" id="leaderBlock">
+    <div class="block-header">
+      <span class="block-title">파티장</span>
+    </div>
+    <div class="block-checks">
+      <!-- 파티장은 mvp 옵션만 (타서버 없음) -->
+      <label class="chk-wrap">
+        <input type="checkbox" id="leaderMvp" checked onchange="calc()">
+        <span>MVP</span>
+      </label>
+    </div>
+    <div class="fee-info" id="leaderFeeInfo">—</div>
+    <div class="amount-row">
+      <div class="amount-item">
+        <div class="alabel">실제 수령액</div>
+        <div class="aval leader-val" id="leaderReceive">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 파티원 동적 -->
+  <div id="membersWrap" style="display:contents"></div>
+
+  <!-- + 버튼 -->
+  <div class="add-btn-wrap">
+    <button class="add-btn" id="addBtn" onclick="addMember()" title="파티원 추가">+</button>
+  </div>
+</div>
+
+<!-- 요약 -->
+<div class="summary" id="summary">
+  <h2>분배 요약</h2>
+  <div class="summary-grid">
+    <div class="summary-item">
+      <div class="slabel">판매 가격</div>
+      <div class="sval" id="sumSell">—</div>
+    </div>
+    <div class="summary-item">
+      <div class="slabel">파티원 수</div>
+      <div class="sval" id="sumCount">—</div>
+    </div>
+    <div class="summary-item">
+      <div class="slabel">파티장 수령</div>
+      <div class="sval" id="sumLeader">—</div>
+    </div>
+    <div class="summary-item">
+      <div class="slabel">파티원 1인 수령</div>
+      <div class="sval" id="sumMember">—</div>
+    </div>
+  </div>
+  <div class="note" id="noteArea"></div>
+</div>
+
+<script>
+let memberCount = 0;
+let memberData = []; // [{id, otherServer, mvp}]
+
+const MAX_MEMBERS = 5;
+
+function addMember() {
+  if (memberCount >= MAX_MEMBERS) return;
+  memberCount++;
+  const id = memberCount;
+  memberData.push({ id, otherServer: false, mvp: true });
+
+  const wrap = document.getElementById('membersWrap');
+  const div = document.createElement('div');
+  div.className = 'block member';
+  div.id = `member-${id}`;
+  div.innerHTML = `
+    <div class="block-header">
+      <span class="block-title">파티원 ${id}</span>
+      <button class="remove-btn" onclick="removeMember(${id})" title="제거">×</button>
+    </div>
+    <div class="block-checks">
+      <label class="chk-wrap">
+        <input type="checkbox" id="m${id}-other" onchange="updateMember(${id})">
+        <span>타서버</span>
+      </label>
+      <label class="chk-wrap">
+        <input type="checkbox" id="m${id}-mvp" checked onchange="updateMember(${id})">
+        <span>MVP</span>
+      </label>
+    </div>
+    <div class="fee-info" id="m${id}-fee">—</div>
+    <div class="amount-row">
+      <div class="amount-item">
+        <div class="alabel">실제 수령액</div>
+        <div class="aval" id="m${id}-receive">—</div>
+      </div>
+      <div class="amount-item">
+        <div class="alabel">파티장이 줄 금액</div>
+        <div class="aval transfer" id="m${id}-transfer">—</div>
+      </div>
+    </div>
+  `;
+  wrap.appendChild(div);
+  updateAddBtn();
+  calc();
+}
+
+function removeMember(id) {
+  memberData = memberData.filter(m => m.id !== id);
+  const el = document.getElementById(`member-${id}`);
+  if (el) el.remove();
+  // 타이틀 재번호
+  const blocks = document.querySelectorAll('#membersWrap .block');
+  blocks.forEach((b, i) => {
+    b.querySelector('.block-title').textContent = `파티원 ${i+1}`;
+  });
+  memberCount = memberData.length;
+  updateAddBtn();
+  calc();
+}
+
+function updateMember(id) {
+  const m = memberData.find(x => x.id === id);
+  if (!m) return;
+  m.otherServer = document.getElementById(`m${id}-other`).checked;
+  m.mvp = document.getElementById(`m${id}-mvp`).checked;
+  calc();
+}
+
+function updateAddBtn() {
+  document.getElementById('addBtn').disabled = memberCount >= MAX_MEMBERS;
+}
+
+// 수수료 적용: 금액 * (1 - fee/100) 를 floor
+function applyFee(amount, feePercent) {
+  return Math.floor(amount * (1 - feePercent / 100));
+}
+
+function fmt(n) {
+  if (isNaN(n) || n === null) return '—';
+  return n.toLocaleString('ko-KR');
+}
+
+function calc() {
+  const sellPrice = parseInt(document.getElementById('sellPrice').value) || 0;
+  const globalMvp = document.getElementById('globalMvp').checked;
+
+  // 글로벌 MVP 수수료 배지
+  document.getElementById('globalFeeBadge').textContent = globalMvp ? '3%' : '5%';
+
+  // 파티장 수수료
+  const leaderMvp = document.getElementById('leaderMvp').checked;
+  // 파티장 수수료 = mvp여부에 따라
+  const leaderBaseFee = leaderMvp ? 3 : 5;
+
+  // 파티장 수령액 (판매가 - 수수료)
+  const leaderReceive = applyFee(sellPrice, leaderBaseFee);
+
+  // 파티원이 없으면 파티장이 다 가짐
+  const totalMembers = memberData.length;
+
+  // 모두가 동일하게 수령해야 하므로:
+  // 파티원이 파티장한테 받을 때 수수료가 붙음.
+  // 파티원이 받는 실제금액 = (파티장이 주는 금액) * (1 - 각 수수료)
+  // 모두의 실제 수령액이 같아야 함 → 기준금액 T 를 구함
+  // 파티장 실제수령 = leaderReceive - Σ(파티장이 주는 금액_i)
+  // 파티원 i 실제수령 = (파티장이 주는 금액_i) * (1 - fee_i)
+  // 모두 T가 되도록: T = leaderReceive - Σ transfer_i = transfer_i * (1-fee_i)
+  // → transfer_i = T / (1 - fee_i)
+  // → T + Σ T/(1-fee_i) = leaderReceive
+  // → T * (1 + Σ 1/(1-fee_i)) = leaderReceive
+  // → T = leaderReceive / (1 + Σ 1/(1-fee_i))
+  // Then floor T, and floor each transfer
+
+  // 각 파티원 수수료 계산
+  const memberFees = memberData.map(m => {
+    const baseFee = m.mvp ? 3 : 5;
+    const otherFee = m.otherServer ? 1 : 0;
+    // 복리: (1 - base/100) * (1 - other/100)
+    // 실제 남는 비율
+    const keepRatio = (1 - baseFee / 100) * (1 - otherFee / 100);
+    return { ...m, baseFee, otherFee, keepRatio };
+  });
+
+  let T = 0;
+  let sumInvKeep = 0;
+
+  if (totalMembers === 0) {
+    T = leaderReceive;
+  } else {
+    // Σ 1/keepRatio
+    sumInvKeep = memberFees.reduce((acc, m) => acc + 1 / m.keepRatio, 0);
+    // T = floor(leaderReceive / (1 + sumInvKeep))
+    T = Math.floor(leaderReceive / (1 + sumInvKeep));
+  }
+
+  // 파티장 실제 수령
+  const leaderActual = totalMembers === 0 ? leaderReceive : T;
+
+  // 파티원 transfer, receive
+  const memberResults = memberFees.map(m => {
+    // 파티장이 주는 금액: T / keepRatio, floor
+    const transfer = Math.floor(T / m.keepRatio);
+    // 실제 수령: floor(transfer * keepRatio)
+    const receive = applyFee(transfer, m.baseFee);
+    const receive2 = m.otherFee > 0 ? applyFee(receive, m.otherFee) : receive;
+    return { ...m, transfer, receive: receive2 };
+  });
+
+  // 파티장 실제 수령 재계산 (leaderReceive - Σtransfer, floor)
+  const totalTransfer = memberResults.reduce((a, m) => a + m.transfer, 0);
+  const leaderFinal = leaderReceive - totalTransfer;
+
+  // UI 업데이트 - 파티장
+  const leaderFeeStr = `${leaderBaseFee}%`;
+  document.getElementById('leaderFeeInfo').innerHTML =
+    `수수료 <span class="fee-chain">${leaderFeeStr}</span> → 적용후 <span class="fee-result">${fmt(leaderReceive)}</span>`;
+  document.getElementById('leaderReceive').textContent =
+    sellPrice > 0 ? fmt(leaderFinal) : '—';
+
+  // UI 업데이트 - 파티원
+  memberResults.forEach((m, i) => {
+    const feeChain = m.otherFee > 0
+      ? `${m.baseFee}% + ${m.otherFee}% (복리)`
+      : `${m.baseFee}%`;
+    const actualFeeDisplay = (1 - m.keepRatio) * 100;
+    document.getElementById(`m${m.id}-fee`).innerHTML =
+      `수수료 <span class="fee-chain">${feeChain}</span> ≈ 실적용 <span class="fee-result">${actualFeeDisplay.toFixed(2)}%</span>`;
+    document.getElementById(`m${m.id}-receive`).textContent =
+      sellPrice > 0 ? fmt(m.receive) : '—';
+    document.getElementById(`m${m.id}-transfer`).textContent =
+      sellPrice > 0 ? fmt(m.transfer) : '—';
+  });
+
+  // 요약
+  document.getElementById('sumSell').textContent = sellPrice > 0 ? fmt(sellPrice) : '—';
+  document.getElementById('sumCount').textContent = `파티장 + ${totalMembers}명`;
+  document.getElementById('sumLeader').textContent = sellPrice > 0 ? fmt(leaderFinal) : '—';
+  document.getElementById('sumMember').textContent =
+    (sellPrice > 0 && totalMembers > 0) ? fmt(T) : '—';
+
+  // 노트
+  let noteHtml = '';
+  if (sellPrice > 0) {
+    noteHtml += `<b>목표 균등 수령액</b>: ${fmt(T)}<br>`;
+    noteHtml += `파티장 판매 후 수령: ${fmt(leaderReceive)} → 파티원 분배 후 실수령: ${fmt(leaderFinal)}<br>`;
+    if (totalMembers > 0) {
+      noteHtml += `파티원 총 이체 금액: ${fmt(totalTransfer)}<br>`;
+    }
+    noteHtml += `<span style="color:var(--muted);font-size:0.7rem">※ 1의 자리 이하 버림 적용 · 수수료 복리 계산</span>`;
+  }
+  document.getElementById('noteArea').innerHTML = noteHtml;
+}
+
+// 초기 계산
+calc();
+</script>
+</body>
+</html>
